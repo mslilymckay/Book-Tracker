@@ -6,17 +6,23 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const bookGrid = document.getElementById('book-grid');
 
-// Function to fetch and render books
-async function loadBooks() {
-  const { data: books, error } = await supabase
-    .from('books')
-    .select('*')
-    .order('title', { ascending: true }); // Alphabetical order
+// Function to open and populate the bottom sheet
+function openDetails(book) {
+  const sheet = document.querySelector('.bottom-sheet');
+  const titleEl = document.querySelector('.book-title');
+  const authorEl = document.querySelector('.book-author');
+  const catEl = document.querySelector('.metadata[data-field="category"]');
+  const ratingEl = document.querySelector('.metadata[data-field="rating"]');
 
-  if (error) {
-    console.error('Error fetching books:', error);
-    return;
-  }
+  // Update text content
+  titleEl.textContent = book.title;
+  authorEl.textContent = book.author;
+  catEl.textContent = `Category: ${book.category || 'N/A'}`;
+  ratingEl.textContent = `Rating: ${book.rating ? book.rating + ' Stars' : 'No rating'}`;
+
+  // Slide up
+  sheet.classList.add('open');
+}
 
   // Clear existing content
   bookGrid.innerHTML = '';
@@ -30,7 +36,7 @@ async function loadBooks() {
       <p class="cover-author">${book.author}</p>
     `;
     
-    // Add click event for the detail sheet (we can link this later!)
+    bookDiv.addEventListener('click', () => openDetails(book));
     bookDiv.addEventListener('click', () => {
       console.log('Clicked:', book.title);
       // We will trigger the bottom sheet here in the next step
