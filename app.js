@@ -70,8 +70,50 @@ async function loadBooks() {
     .order('title', { ascending: true });
 
   if (error) { console.error(error); return; }
-
   bookGrid.innerHTML = '';
+
+  // 1. Hero Book (Loads immediately)
+  const activeBook = books.find(b => b.status === 0) || books.find(b => b.status !== 1);
+  if (activeBook) {
+    const activeCoverUrl = await getCoverUrl(activeBook.isbn);
+    const activeDiv = document.querySelector('.active-read');
+    if (activeDiv) {
+      activeDiv.innerHTML = `<img src="${activeCoverUrl}" alt="${activeBook.title}" class="cover-image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px 12px 12px 4px;">`;
+      activeDiv.addEventListener('click', () => openDetails(activeBook, activeDiv));
+    }
+  }
+
+  // 2. Library Grid (Lazy Loaded)
+  for (const book of books) {
+    const bookDiv = document.createElement('div');
+    bookDiv.className = 'book-cover';
+    
+    // Notice we use a placeholder and hide the ISBN in a data attribute
+    bookDiv.innerHTML = `
+      <img src="https://placehold.co/150x200?text=Loading..." data-isbn="${book.isbn}" alt="${book.title}" class="cover-image lazy-cover">
+      <h3 class="cover-title">${book.title}</h3>
+      <p class="cover-author">${book.author}</p>
+    `;
+    
+    bookDiv.addEventListener('click', () => openDetails(book, bookDiv));
+    bookGrid.appendChild(bookDiv);
+  }
+
+  // 3. The Lazy Loader Logic
+  const lazyCovers = document.querySelectorAll('.lazy-cover');
+  const observer = new IntersectionObserver((entries, observer) => {
+    entries.forEach(async entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        const coverUrl = await getCoverUrl(img.dataset.isbn);
+        img.src = coverUrl;
+        observer.unobserve(img); // Stop tracking once loaded
+      }
+    });
+  });
+  
+  lazyCovers.forEach(img => observer.observe(img));
+}
 
   // 1. Find and inject the "Currently Reading" book (assuming status 0 is reading)
   const activeBook = books.find(b => b.status === 0) || books.find(b => b.status !== 1);
