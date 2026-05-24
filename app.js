@@ -77,8 +77,8 @@ async function loadBooks() {
   if (error) { console.error(error); return; }
   bookGrid.innerHTML = '';
 
-  // 1. Hero Book (Loads immediately)
-  const activeBook = books.find(b => b.status === 0) || books.find(b => b.status !== 1);
+  // 1. Hero Book (With a fallback to the first book if none are active)
+  const activeBook = books.find(b => b.status === 0) || books.find(b => b.status !== 1) || books[0];
   if (activeBook) {
     const activeCoverUrl = await getCoverUrl(activeBook.isbn);
     const activeDiv = document.querySelector('.active-read');
@@ -88,12 +88,12 @@ async function loadBooks() {
     }
   }
 
-  // 2. Library Grid (Lazy Loaded)
+  // 2. Library Grid (Properly Lazy Loaded)
   for (const book of books) {
     const bookDiv = document.createElement('div');
     bookDiv.className = 'book-cover';
     
-    // Notice we use a placeholder and hide the ISBN in a data attribute
+    // Notice there is NO 'await getCoverUrl' here anymore!
     bookDiv.innerHTML = `
       <img src="https://placehold.co/150x200?text=Loading..." data-isbn="${book.isbn}" alt="${book.title}" class="cover-image lazy-cover">
       <h3 class="cover-title">${book.title}</h3>
