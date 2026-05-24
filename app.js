@@ -140,3 +140,4 @@ if (topFab) {
     });
   });
 }
+loadBooks();
