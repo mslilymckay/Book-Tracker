@@ -21,7 +21,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* Main Bookshelf Area */
@@ -29,6 +29,8 @@ body {
   flex-grow: 1;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
   padding-bottom: 80px; /* Space for the bottom nav */
 }
 
