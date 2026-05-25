@@ -60,9 +60,8 @@ function getCoverUrl(isbn) {
   // Remove dashes and spaces from the ISBN
   const cleanIsbn = String(isbn).replace(/[-\s]/g, '');
 
-  // Return the direct image URL from Open Library
-  // The '-M' at the end specifies a medium-sized image
-  return `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
+  // Add '?default=false' to force a 404 error if the cover is missing
+  return `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg?default=false`;
 }
 
 async function loadBooks() {
