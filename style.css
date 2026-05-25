@@ -35,10 +35,11 @@ body {
 /* Bookshelf Grid Layout */
 .book-grid {
   display: grid;
-  /* CHANGED: 1fr to minmax(0, 1fr) */
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Use strict math: exactly 50% width minus half the 20px gap */
+  grid-template-columns: calc(50% - 10px) calc(50% - 10px);
   gap: 20px;
   padding: 0 15px; 
+  width: 100%;
 }
 
 .hero-wrapper {
@@ -56,11 +57,11 @@ body {
 
 .current-read-section {
   display: grid;
-  /* CHANGED: 1fr to minmax(0, 1fr) */
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: calc(50% - 10px) calc(50% - 10px);
   gap: 20px;
   margin-bottom: 30px;
   padding-top: 10px;
+  width: 100%;
 }
 
 /* Give the current book a subtle terracotta glow */
@@ -98,30 +99,34 @@ body {
 /* Physical Book Cover Styling */
 .cover-image {
   width: 100%;
-  /* ADDED: Force all images to be the same size */
+  height: auto; /* Forces the browser to calculate height via aspect-ratio without stretching */
   aspect-ratio: 2 / 3; 
-  object-fit: cover; /* Ensures images fill the 2:3 box by cropping, not squishing */
-  
+  object-fit: cover; 
   border-radius: 2px;
   margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: block; /* Removes any invisible inline spacing below the image */
 }
 
 .book-cover {
   background-color: #e0dcd3; 
   border-radius: 4px 12px 12px 4px; 
   box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.15); 
-  /* REMOVED: aspect-ratio: 2 / 3; */
-  
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Changed from center to keep images aligned at the top */
+  justify-content: flex-start;
   align-items: center;
   padding: 10px;
   text-align: center;
   cursor: pointer;
   transition: transform 0.2s ease;
-  height: 100%; /* Ensures all cards in the same grid row match in height */
+  height: 100%; 
+  
+  /* THE MAGIC LOCKS */
+  width: 100%; 
+  min-width: 0; /* Prevents the card from expanding past the column width */
+  overflow: hidden; 
+  box-sizing: border-box;
 }
 
 /* A subtle press effect for mobile taps */
@@ -135,7 +140,8 @@ body {
   -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 2.4em; 
+  height: 2.4em;
+  width: 100%;
   margin-bottom: 4px;
   /* ADDED: Forces extremely long words to break rather than stretching the card */
   overflow-wrap: break-word; 
