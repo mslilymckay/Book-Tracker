@@ -338,3 +338,25 @@ body {
   font-size: 14px;
   padding-left: 10px;
 }
+
+/* --- PAGE VIEW ARCHITECTURE --- */
+.page-view {
+  display: none; /* Hide everything by default */
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Only show the section with the 'active' class */
+.page-view.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
