@@ -35,7 +35,8 @@ body {
 /* Bookshelf Grid Layout */
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* CHANGED: 1fr to minmax(0, 1fr) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
   padding: 0 15px; 
 }
@@ -55,7 +56,8 @@ body {
 
 .current-read-section {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* CHANGED: 1fr to minmax(0, 1fr) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
   margin-bottom: 30px;
   padding-top: 10px;
@@ -130,11 +132,13 @@ body {
 /* Text Clamping for uniform card heights */
 .cover-title {
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Forces text to stop after 2 lines */
+  -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical;
   overflow: hidden;
   height: 2.4em; 
   margin-bottom: 4px;
+  /* ADDED: Forces extremely long words to break rather than stretching the card */
+  overflow-wrap: break-word; 
 }
 
 .cover-author {
