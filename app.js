@@ -53,19 +53,16 @@ function openDetails(book, clickedElement) {
   sheet.classList.add('open');
 }
 
-async function getCoverUrl(isbn) {
+function getCoverUrl(isbn) {
+  // If there is no ISBN, return the placeholder
   if (!isbn) return 'https://placehold.co/150x200?text=No+Cover';
-  const cleanIsbn = isbn.toString().replace(/[-\s]/g, '');
-  try {
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`);
-    const data = await response.json();
-    if (data.totalItems > 0 && data.items[0].volumeInfo.imageLinks?.thumbnail) {
-      return data.items[0].volumeInfo.imageLinks.thumbnail;
-    }
-  } catch (e) {
-    console.error("Cover fetch failed:", e);
-  }
-  return 'https://placehold.co/150x200?text=No+Cover';
+
+  // Remove dashes and spaces from the ISBN
+  const cleanIsbn = String(isbn).replace(/[-\s]/g, '');
+
+  // Return the direct image URL from Open Library
+  // The '-M' at the end specifies a medium-sized image
+  return `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
 }
 
 async function loadBooks() {
@@ -107,11 +104,20 @@ async function loadBooks() {
   // 3. The Lazy Loader Logic
   const lazyCovers = document.querySelectorAll('.lazy-cover');
   const observer = new IntersectionObserver((entries, observer) => {
-    entries.forEach(async entry => {
+    entries.forEach(entry => {
       if (entry.isIntersecting) {
         const img = entry.target;
-        const coverUrl = await getCoverUrl(img.dataset.isbn);
+        const coverUrl = getCoverUrl(img.dataset.isbn);
+        
+        // Set the image source to the Open Library URL
         img.src = coverUrl;
+
+        // Fallback: If Open Library doesn't have the cover, it sometimes returns a 1x1 pixel blank image.
+        // We can listen for an error and swap back to our placeholder if it fails.
+        img.onerror = () => {
+          img.src = 'https://placehold.co/150x200?text=No+Cover';
+        };
+
         observer.unobserve(img); // Stop tracking once loaded
       }
     });
