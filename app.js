@@ -200,26 +200,24 @@ async function searchGoogleBooks(query) {
   searchResultsContainer.innerHTML = '<p style="text-align:center; color: var(--sage-green); font-family: Courier New;">Searching the archives...</p>';
 
   try {
-    const apiKey = 'YOUR_NEW_API_KEY_HERE';
-    const searchType = document.getElementById('search-type').value;
+    // PASTE YOUR ACTUAL SECURE API KEY HERE
+    const apiKey = 'AIzaSyD8cH6KE9JXatD9t0tyc6QETNMrtJP-Pt4';
     
-    // Clean the query to check if it is just numbers and hyphens
+    // Find which radio button is currently checked
+    const searchType = document.querySelector('input[name="search-type"]:checked').value;
+    
     const cleanQuery = query.replace(/[-\s]/g, '');
-    
-    // A regular expression that checks if the string is exactly 10 or 13 digits
     const isIsbn = /^\d{10}(\d{3})?$/.test(cleanQuery);
     
+    // We only encode the user's text, leaving the prefix intact
     let finalQuery = '';
     if (isIsbn) {
-      // If it is an ISBN, ignore the dropdown and use the isbn: prefix
-      finalQuery = `isbn:${cleanQuery}`;
+      finalQuery = `isbn:${encodeURIComponent(cleanQuery)}`;
     } else {
-      // Otherwise, use the prefix selected in the dropdown
-      finalQuery = `${searchType}${query}`;
+      finalQuery = `${searchType}${encodeURIComponent(query)}`;
     }
     
-    // Fetch data using our smart finalQuery
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(finalQuery)}&maxResults=10&key=${apiKey}`);
+    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${finalQuery}&maxResults=10&key=${apiKey}`);
     const data = await response.json();
 
     searchResultsContainer.innerHTML = ''; 
