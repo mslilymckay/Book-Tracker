@@ -152,30 +152,59 @@ if (topFab) {
 }
 loadBooks();
 
-// --- NAVIGATION LOGIC --- //
+// --- FIX: Focus Mode Toggle --- //
+const readerToggle = document.getElementById('reader-toggle');
+if (readerToggle) {
+  readerToggle.addEventListener('click', () => {
+    readerToggle.classList.toggle('fullscreen-focus');
+  });
+}
+
+// --- FIX: Scrolling and Navigation Logic --- //
 const navItems = document.querySelectorAll('.nav-item');
 const pageViews = document.querySelectorAll('.page-view');
+const topFab = document.getElementById('top-fab');
+const bookshelfContainer = document.querySelector('.bookshelf'); // The element that actually scrolls
 
+// 1. Navigation Clicks
 navItems.forEach(item => {
   item.addEventListener('click', () => {
-    // 1. Remove 'active' from all buttons, add to the clicked one
     navItems.forEach(btn => btn.classList.remove('active'));
     item.classList.add('active');
 
-    // 2. Hide all pages, show the target page
     const targetId = item.getAttribute('data-target');
     pageViews.forEach(view => view.classList.remove('active'));
     document.getElementById(targetId).classList.add('active');
 
-    // 3. Reset the scroll position and hide the FAB
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Reset scroll on the bookshelf div, not the window
+    if (bookshelfContainer) {
+      bookshelfContainer.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    
     if (topFab) {
       topFab.classList.remove('visible');
     }
     
-    // 4. Force close the bottom sheet if it's open
     if (sheet.classList.contains('open')) {
       sheet.classList.remove('open');
     }
   });
 });
+
+// 2. FAB Scroll Listener
+if (topFab && bookshelfContainer) {
+  bookshelfContainer.addEventListener('scroll', () => {
+    if (bookshelfContainer.scrollTop > 300) {
+      topFab.classList.add('visible');
+    } else {
+      topFab.classList.remove('visible');
+    }
+  });
+
+  topFab.addEventListener('click', () => {
+    bookshelfContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+}
