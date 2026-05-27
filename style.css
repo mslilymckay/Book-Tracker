@@ -44,8 +44,8 @@ body {
 
 .hero-wrapper {
   background-color: #e8e4d9; /* Contrasting background */
-  padding: 20px 15px;
-  margin: -20px -15px 20px -15px; /* Pulls it to the screen edges */
+  padding: 0 15px;
+  margin-bottom: 20px;
 }
 
 .section-label {
@@ -195,7 +195,8 @@ body {
   background-color: var(--bg-color);
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between; /* Spreads items to the edges */
+  padding: 0 30px; /* Adds safe breathing room on the far left and right */
   align-items: center;
   z-index: 10;
 }
@@ -337,6 +338,44 @@ body {
   font-family: 'Courier New', Courier, monospace;
   font-size: 14px;
   padding-left: 10px;
+}
+
+/* --- NEW: Focus Mode Fullscreen Toggle --- */
+#reader-toggle.fullscreen-focus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--card-bg);
+  z-index: 9999;
+  justify-content: center;
+  border-radius: 0;
+}
+
+/* Allows the GIF to scale up nicely when fullscreen */
+#reader-toggle.fullscreen-focus .cover-image {
+  width: 90%;
+  max-width: 350px;
+  height: auto;
+  aspect-ratio: auto; 
+}
+
+/* Hides the title in fullscreen */
+#reader-toggle.fullscreen-focus .cover-title {
+  display: none;
+}
+
+/* Swaps the sub-title text in fullscreen */
+#reader-toggle.fullscreen-focus .cover-author {
+  visibility: hidden; 
+}
+#reader-toggle.fullscreen-focus .cover-author::after {
+  content: 'Tap to exit';
+  visibility: visible;
+  display: block;
+  font-size: 18px;
+  margin-top: 15px;
 }
 
 /* --- PAGE VIEW ARCHITECTURE --- */
