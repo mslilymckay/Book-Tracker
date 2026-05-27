@@ -42,8 +42,13 @@
     <section id="view-search" class="page-view">
       <div class="hero-wrapper">
         <h2 class="section-label">Find a Book</h2>
+        <div class="search-bar-container">
+          <input type="text" id="search-input" placeholder="Search by title, author, or ISBN...">
+          <button id="search-btn">Search</button>
+        </div>
       </div>
-      <p style="padding: 15px; text-align: center; color: var(--sage-green);">Search functionality coming in Batch 4!</p>
+      
+      <div id="search-results-container" class="search-results-list"></div>
     </section>
 
     <section id="view-focus" class="page-view">
