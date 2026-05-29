@@ -158,9 +158,9 @@ async function loadBooks() {
 
   const getStatus = (b) => Number(b.status !== undefined ? b.status : b.Status);
   const activeBook = books.find(b => getStatus(b) === 0) || books.find(b => getStatus(b) !== 1) || books[0];
-  
   if (activeBook) {
-    const activeCoverUrl = getCoverUrl(activeBook.isbn);
+    // Check for a saved cover first, then fallback to Open Library
+    const activeCoverUrl = activeBook.cover_url || getCoverUrl(activeBook.isbn);
     const activeDiv = document.querySelector('.active-read');
     if (activeDiv) {
       activeDiv.innerHTML = `
@@ -176,11 +176,21 @@ async function loadBooks() {
     const bookDiv = document.createElement('div');
     bookDiv.className = 'book-cover';
     
-    bookDiv.innerHTML = `
-      <img src="https://placehold.co/150x200?text=Loading..." data-isbn="${book.isbn}" alt="${book.title}" class="cover-image lazy-cover">
-      <h3 class="cover-title">${book.title}</h3>
-      <p class="cover-author">${book.author}</p>
-    `;
+    if (book.cover_url && book.cover_url !== 'https://placehold.co/60x90?text=No+Cover') {
+      // If we saved a valid cover from Google, render it immediately
+      bookDiv.innerHTML = `
+        <img src="${book.cover_url}" data-isbn="${book.isbn}" alt="${book.title}" class="cover-image" onerror="this.src='https://placehold.co/150x200?text=No+Cover'">
+        <h3 class="cover-title">${book.title}</h3>
+        <p class="cover-author">${book.author}</p>
+      `;
+    } else {
+      // If no cover was saved, use the IntersectionObserver to check Open Library
+      bookDiv.innerHTML = `
+        <img src="https://placehold.co/150x200?text=Loading..." data-isbn="${book.isbn}" alt="${book.title}" class="cover-image lazy-cover">
+        <h3 class="cover-title">${book.title}</h3>
+        <p class="cover-author">${book.author}</p>
+      `;
+    }
     
     bookDiv.addEventListener('click', () => openDetails(book, bookDiv));
     if(bookGrid) bookGrid.appendChild(bookDiv);
@@ -257,7 +267,12 @@ async function searchGoogleBooks(query) {
         <div class="search-result-info">
           <h3>${title}</h3>
           <p>${author}</p>
-          <button class="add-book-btn" data-title="${encodeURIComponent(title)}" data-author="${encodeURIComponent(author)}" data-isbn="${isbn}" data-category="${encodeURIComponent(category)}">+ Add</button>
+          <button class="add-book-btn" 
+            data-title="${encodeURIComponent(title)}" 
+            data-author="${encodeURIComponent(author)}" 
+            data-isbn="${isbn}" 
+            data-category="${encodeURIComponent(category)}"
+            data-cover="${thumbnail}">+ Add</button>
         </div>
       `;
 
@@ -277,18 +292,24 @@ async function searchGoogleBooks(query) {
         // your column is capitalized (e.g., "Category"), you MUST change the 
         // word "category" below to "Category" so Supabase accepts it!
         // --------------------------------------------------------------------------
-        const { error } = await supabase
-          .from('books')
-          .insert([
-            {
-              uuid: crypto.randomUUID(), 
-              title: decodeURIComponent(button.dataset.title),
-              author: decodeURIComponent(button.dataset.author),
-              isbn: button.dataset.isbn,
-              category: decodeURIComponent(button.dataset.category), // <-- Check capitalization here!
-              status: 0 
-            }
-          ]);
+        // Dynamically find the exact capitalization your database uses
+        const schema = globalLibraryData.length > 0 ? Object.keys(globalLibraryData[0]) : [];
+        const isbnKey = schema.find(k => k.toLowerCase() === 'isbn') || 'isbn';
+        const catKey = schema.find(k => k.toLowerCase() === 'category') || 'category';
+
+        const payload = {
+          uuid: crypto.randomUUID(), 
+          title: decodeURIComponent(button.dataset.title),
+          author: decodeURIComponent(button.dataset.author),
+          status: 0,
+          cover_url: button.dataset.cover 
+        };
+        
+        // Safely apply the correctly capitalized keys
+        payload[isbnKey] = button.dataset.isbn;
+        payload[catKey] = decodeURIComponent(button.dataset.category);
+
+        const { error } = await supabase.from('books').insert([payload]);
 
         if (error) {
           console.error("Database save failed:", error);
