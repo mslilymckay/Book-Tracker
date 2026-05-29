@@ -4,15 +4,18 @@ const supabaseUrl = 'https://jvsjzlvabtffhsnvmcto.supabase.co';
 const supabaseKey = 'sb_publishable_H2EPwvAaziQVz8T4yExdEw_bQrB5f3V';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+let globalLibraryData = []; 
+
 const bookGrid = document.getElementById('book-grid');
 const sheet = document.querySelector('.bottom-sheet');
 const sheetHandle = document.querySelector('.sheet-handle');
 
-sheetHandle.addEventListener('click', () => {
-  sheet.classList.remove('open');
-});
+if (sheetHandle) {
+  sheetHandle.addEventListener('click', () => {
+    sheet.classList.remove('open');
+  });
+}
 
-// Helper to format the date to MM-DD-YY
 function formatDate(isoString) {
   if (!isoString) return '';
   const date = new Date(isoString);
@@ -22,7 +25,6 @@ function formatDate(isoString) {
   return `${m}-${d}-${y}`;
 }
 
-// Updated to accept clickedElement for smooth scrolling
 function openDetails(book, clickedElement) {
   if (clickedElement) {
     clickedElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -36,32 +38,90 @@ function openDetails(book, clickedElement) {
   const stampEl = document.getElementById('completion-stamp');
   const stampDateEl = document.getElementById('stamp-date');
 
-  titleEl.textContent = book.title;
-  authorEl.textContent = book.author;
-  catEl.textContent = `Category: ${book.category || 'N/A'}`;
-  ratingEl.textContent = `Rating: ${book.rating ? book.rating + ' Stars' : 'No rating'}`;
-  isbnEl.textContent = `ISBN: ${book.isbn || 'N/A'}`;
+  if(titleEl) titleEl.textContent = book.title;
+  if(authorEl) authorEl.textContent = book.author;
+  if(catEl) catEl.textContent = `Category: ${book.category || 'N/A'}`;
+  if(ratingEl) ratingEl.textContent = `Rating: ${book.rating ? book.rating + ' Stars' : 'No rating'}`;
+  if(isbnEl) isbnEl.textContent = `ISBN: ${book.isbn || 'N/A'}`;
 
-  // Logic for the Vintage Stamp
   if (book.status === 1 && book.read_date) {
-    stampDateEl.textContent = formatDate(book.read_date);
-    stampEl.classList.add('visible');
+    if(stampDateEl) stampDateEl.textContent = formatDate(book.read_date);
+    if(stampEl) stampEl.classList.add('visible');
   } else {
-    stampEl.classList.remove('visible');
+    if(stampEl) stampEl.classList.remove('visible');
   }
 
-  sheet.classList.add('open');
+  if(sheet) sheet.classList.add('open');
 }
 
 function getCoverUrl(isbn) {
-  // If there is no ISBN, return the placeholder
   if (!isbn) return 'https://placehold.co/150x200?text=No+Cover';
-
-  // Remove dashes and spaces from the ISBN
   const cleanIsbn = String(isbn).replace(/[-\s]/g, '');
-
-  // Add '?default=false' to force a 404 error if the cover is missing
   return `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg?default=false`;
+}
+
+function calculateStats() {
+  const books = globalLibraryData;
+  const timeFilterEl = document.getElementById('stats-timefilter');
+  const filter = timeFilterEl ? timeFilterEl.value : 'year';
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const activeCount = books.filter(b => b.status === 0).length;
+  
+  let periodCount = 0;
+  const completedBooks = books.filter(b => b.status === 1 && b.read_date);
+  
+  completedBooks.forEach(b => {
+    const readDate = new Date(b.read_date);
+    if (filter === 'all') {
+      periodCount++;
+    } else if (filter === 'year' && readDate.getFullYear() === currentYear) {
+      periodCount++;
+    } else if (filter === 'month' && readDate.getFullYear() === currentYear && readDate.getMonth() === currentMonth) {
+      periodCount++;
+    }
+  });
+
+  const categoryCounts = {};
+  books.forEach(b => {
+    if (b.category && b.category !== 'Uncategorized' && b.category !== 'N/A') {
+      categoryCounts[b.category] = (categoryCounts[b.category] || 0) + 1;
+    }
+  });
+
+  const sortedCategories = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
+  const topCategories = sortedCategories.slice(0, 3); 
+
+  const statActiveEl = document.getElementById('stat-active');
+  const statYearlyEl = document.getElementById('stat-yearly');
+  const statCategoriesEl = document.getElementById('stat-categories');
+
+  if (statActiveEl) statActiveEl.textContent = activeCount;
+  
+  if (statYearlyEl) {
+    statYearlyEl.textContent = periodCount;
+    const labelEl = statYearlyEl.nextElementSibling;
+    if (labelEl) {
+        labelEl.textContent = filter === 'month' ? 'Books Read This Month' : 
+                              filter === 'year' ? 'Books Read This Year' : 
+                              'Total Books Read';
+    }
+  }
+
+  if (statCategoriesEl) {
+    if (topCategories.length === 0) {
+      statCategoriesEl.innerHTML = '<li>No categories yet</li>';
+    } else {
+      statCategoriesEl.innerHTML = topCategories.map(cat => `<li>${cat} (${categoryCounts[cat]})</li>`).join('');
+    }
+  }
+}
+
+const timeFilterEl = document.getElementById('stats-timefilter');
+if (timeFilterEl) {
+  timeFilterEl.addEventListener('change', calculateStats);
 }
 
 async function loadBooks() {
@@ -71,17 +131,19 @@ async function loadBooks() {
     .order('title', { ascending: true });
 
   if (error) { console.error(error); return; }
-  bookGrid.innerHTML = '';
+  
+  globalLibraryData = books; 
+  calculateStats(); 
+  
+  if(bookGrid) bookGrid.innerHTML = '';
 
-  // 1. Hero Book (With a fallback to the first book if none are active)
   const activeBook = books.find(b => b.status === 0) || books.find(b => b.status !== 1) || books[0];
   if (activeBook) {
-    const activeCoverUrl = getCoverUrl(activeBook.isbn); // Note: Removed 'await' since getCoverUrl is now synchronous!
+    const activeCoverUrl = getCoverUrl(activeBook.isbn);
     const activeDiv = document.querySelector('.active-read');
     if (activeDiv) {
-      // Inject the image, title, and author to match the library cards exactly
       activeDiv.innerHTML = `
-        <img src="${activeCoverUrl}" alt="${activeBook.title}" class="cover-image">
+        <img src="${activeCoverUrl}" alt="${activeBook.title}" class="cover-image" onerror="this.src='https://placehold.co/150x200?text=No+Cover'">
         <h3 class="cover-title">${activeBook.title}</h3>
         <p class="cover-author">${activeBook.author}</p>
       `;
@@ -89,12 +151,10 @@ async function loadBooks() {
     }
   }
 
-  // 2. Library Grid (Properly Lazy Loaded)
   for (const book of books) {
     const bookDiv = document.createElement('div');
     bookDiv.className = 'book-cover';
     
-    // Notice there is NO 'await getCoverUrl' here anymore!
     bookDiv.innerHTML = `
       <img src="https://placehold.co/150x200?text=Loading..." data-isbn="${book.isbn}" alt="${book.title}" class="cover-image lazy-cover">
       <h3 class="cover-title">${book.title}</h3>
@@ -102,37 +162,140 @@ async function loadBooks() {
     `;
     
     bookDiv.addEventListener('click', () => openDetails(book, bookDiv));
-    bookGrid.appendChild(bookDiv);
+    if(bookGrid) bookGrid.appendChild(bookDiv);
   }
 
-  // 3. The Lazy Loader Logic
   const lazyCovers = document.querySelectorAll('.lazy-cover');
   const observer = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const img = entry.target;
         const coverUrl = getCoverUrl(img.dataset.isbn);
-        
-        // Set the image source to the Open Library URL
         img.src = coverUrl;
-
-        // Fallback: If Open Library doesn't have the cover, it sometimes returns a 1x1 pixel blank image.
-        // We can listen for an error and swap back to our placeholder if it fails.
-        img.onerror = () => {
-          img.src = 'https://placehold.co/150x200?text=No+Cover';
-        };
-
-        observer.unobserve(img); // Stop tracking once loaded
+        img.onerror = () => { img.src = 'https://placehold.co/150x200?text=No+Cover'; };
+        observer.unobserve(img);
       }
     });
   });
-  
   lazyCovers.forEach(img => observer.observe(img));
 }
 
-loadBooks();
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const searchResultsContainer = document.getElementById('search-results-container');
 
-// --- FIX: Focus Mode Toggle --- //
+async function searchGoogleBooks(query) {
+  if (!query) return;
+
+  if(searchResultsContainer) searchResultsContainer.innerHTML = '<p style="text-align:center; color: var(--sage-green); font-family: Courier New;">Searching the archives...</p>';
+
+  try {
+    const apiKey = 'AIzaSyD8cH6KE9JXatD9t0tyc6QETNMrtJP-Pt4';
+    const typeRadio = document.querySelector('input[name="search-type"]:checked');
+    const searchType = typeRadio ? typeRadio.value : 'intitle:';
+    
+    const cleanQuery = query.replace(/[-\s]/g, '');
+    const isIsbn = /^\d{10}(\d{3})?$/.test(cleanQuery);
+    
+    let finalQuery = '';
+    if (isIsbn) {
+      finalQuery = `isbn:${encodeURIComponent(cleanQuery)}`;
+    } else {
+      finalQuery = `${searchType}${encodeURIComponent(query)}`;
+    }
+    
+    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${finalQuery}&maxResults=10&key=${apiKey}`);
+    const data = await response.json();
+
+    if(searchResultsContainer) searchResultsContainer.innerHTML = ''; 
+
+    if (!data.items || data.items.length === 0) {
+      if(searchResultsContainer) searchResultsContainer.innerHTML = '<p style="text-align:center; color: var(--sage-green); font-family: Courier New;">No books found. Try a different search.</p>';
+      return;
+    }
+
+    data.items.forEach(item => {
+      const info = item.volumeInfo;
+      
+      const title = info.title || 'Unknown Title';
+      const author = info.authors ? info.authors.join(', ') : 'Unknown Author';
+      const category = info.categories ? info.categories[0] : 'Uncategorized';
+      const thumbnail = info.imageLinks?.thumbnail ? info.imageLinks.thumbnail.replace('http:', 'https:') : 'https://placehold.co/60x90?text=No+Cover';
+      
+      let isbn = '';
+      if (info.industryIdentifiers) {
+        const isbnObj = info.industryIdentifiers.find(id => id.type === 'ISBN_13') || 
+                        info.industryIdentifiers.find(id => id.type === 'ISBN_10');
+        if (isbnObj) isbn = isbnObj.identifier;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'search-result-card';
+      card.innerHTML = `
+        <img src="${thumbnail}" alt="Cover" style="width: 60px; height: 90px; object-fit: cover; border-radius: 2px;">
+        <div class="search-result-info">
+          <h3>${title}</h3>
+          <p>${author}</p>
+          <button class="add-book-btn" data-title="${encodeURIComponent(title)}" data-author="${encodeURIComponent(author)}" data-isbn="${isbn}" data-category="${encodeURIComponent(category)}">+ Add</button>
+        </div>
+      `;
+
+      if(searchResultsContainer) searchResultsContainer.appendChild(card);
+    });
+
+    document.querySelectorAll('.add-book-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const button = e.target;
+        
+        button.textContent = 'Saving...';
+        button.style.backgroundColor = 'var(--terracotta)';
+        button.disabled = true;
+        
+        const { error } = await supabase
+          .from('books')
+          .insert([
+            {
+              uuid: crypto.randomUUID(), 
+              title: decodeURIComponent(button.dataset.title),
+              author: decodeURIComponent(button.dataset.author),
+              isbn: button.dataset.isbn,
+              category: decodeURIComponent(button.dataset.category),
+              status: 0 
+            }
+          ]);
+
+        if (error) {
+          console.error("Database save failed:", error);
+          button.textContent = 'Error';
+          button.style.backgroundColor = '#a34e4e'; 
+          button.disabled = false; 
+        } else {
+          button.textContent = 'Saved!';
+          loadBooks(); 
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error("Search failed:", error);
+    if(searchResultsContainer) searchResultsContainer.innerHTML = '<p style="text-align:center; color: #a34e4e;">Something went wrong. Please try again.</p>';
+  }
+}
+
+if (searchBtn) {
+  searchBtn.addEventListener('click', () => {
+    searchGoogleBooks(searchInput.value);
+  });
+}
+
+if (searchInput) {
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      searchGoogleBooks(searchInput.value);
+    }
+  });
+}
+
 const readerToggle = document.getElementById('reader-toggle');
 if (readerToggle) {
   readerToggle.addEventListener('click', () => {
@@ -140,13 +303,11 @@ if (readerToggle) {
   });
 }
 
-// --- FIX: Scrolling and Navigation Logic --- //
 const navItems = document.querySelectorAll('.nav-item');
 const pageViews = document.querySelectorAll('.page-view');
 const topFab = document.getElementById('top-fab');
 const bookshelfContainer = document.querySelector('.bookshelf'); 
 
-// 1. Navigation Clicks
 navItems.forEach(item => {
   item.addEventListener('click', () => {
     navItems.forEach(btn => btn.classList.remove('active'));
@@ -154,9 +315,10 @@ navItems.forEach(item => {
 
     const targetId = item.getAttribute('data-target');
     pageViews.forEach(view => view.classList.remove('active'));
-    document.getElementById(targetId).classList.add('active');
+    
+    const targetView = document.getElementById(targetId);
+    if(targetView) targetView.classList.add('active');
 
-    // Reset scroll on the bookshelf div
     if (bookshelfContainer) {
       bookshelfContainer.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -171,7 +333,6 @@ navItems.forEach(item => {
   });
 });
 
-// 2. FAB Scroll Listener
 if (topFab && bookshelfContainer) {
   bookshelfContainer.addEventListener('scroll', () => {
     if (bookshelfContainer.scrollTop > 300) {
@@ -189,128 +350,4 @@ if (topFab && bookshelfContainer) {
   });
 }
 
-// --- BATCH 4: SEARCH LOGIC (Google Books API) --- //
-const searchInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
-const searchResultsContainer = document.getElementById('search-results-container');
-
-async function searchGoogleBooks(query) {
-  if (!query) return;
-
-  searchResultsContainer.innerHTML = '<p style="text-align:center; color: var(--sage-green); font-family: Courier New;">Searching the archives...</p>';
-
-  try {
-    // PASTE YOUR ACTUAL SECURE API KEY HERE
-    const apiKey = 'AIzaSyD8cH6KE9JXatD9t0tyc6QETNMrtJP-Pt4';
-    
-    // Find which radio button is currently checked
-    const searchType = document.querySelector('input[name="search-type"]:checked').value;
-    
-    const cleanQuery = query.replace(/[-\s]/g, '');
-    const isIsbn = /^\d{10}(\d{3})?$/.test(cleanQuery);
-    
-    // We only encode the user's text, leaving the prefix intact
-    let finalQuery = '';
-    if (isIsbn) {
-      finalQuery = `isbn:${encodeURIComponent(cleanQuery)}`;
-    } else {
-      finalQuery = `${searchType}${encodeURIComponent(query)}`;
-    }
-    
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${finalQuery}&maxResults=10&key=${apiKey}`);
-    const data = await response.json();
-
-    searchResultsContainer.innerHTML = ''; 
-
-    if (!data.items || data.items.length === 0) {
-      searchResultsContainer.innerHTML = '<p style="text-align:center; color: var(--sage-green); font-family: Courier New;">No books found. Try a different search.</p>';
-      return;
-    }
-
-    // 3. Loop through the results and build the cards
-    data.items.forEach(item => {
-      const info = item.volumeInfo;
-      
-      const title = info.title || 'Unknown Title';
-      const author = info.authors ? info.authors.join(', ') : 'Unknown Author';
-      const thumbnail = info.imageLinks?.thumbnail ? info.imageLinks.thumbnail.replace('http:', 'https:') : 'https://placehold.co/60x90?text=No+Cover';
-      
-      let isbn = '';
-      if (info.industryIdentifiers) {
-        const isbnObj = info.industryIdentifiers.find(id => id.type === 'ISBN_13') || 
-                        info.industryIdentifiers.find(id => id.type === 'ISBN_10');
-        if (isbnObj) isbn = isbnObj.identifier;
-      }
-
-      const card = document.createElement('div');
-      card.className = 'search-result-card';
-      card.innerHTML = `
-        <img src="${thumbnail}" alt="Cover" style="width: 60px; height: 90px; object-fit: cover; border-radius: 2px;">
-        <div class="search-result-info">
-          <h3>${title}</h3>
-          <p>${author}</p>
-          <button class="add-book-btn" data-title="${title.replace(/"/g, '&quot;')}" data-author="${author.replace(/"/g, '&quot;')}" data-isbn="${isbn}">+ Add</button>
-        </div>
-      `;
-
-      searchResultsContainer.appendChild(card);
-    });
-
-    // 4. Wire up the Add buttons to Supabase
-    document.querySelectorAll('.add-book-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const button = e.target;
-        
-        // Provide immediate visual feedback and prevent double-clicks
-        button.textContent = 'Saving...';
-        button.style.backgroundColor = 'var(--terracotta)';
-        button.disabled = true;
-        
-        // Push the new book to your database
-        const { error } = await supabase
-          .from('books')
-          .insert([
-            {
-              title: button.dataset.title,
-              author: button.dataset.author,
-              isbn: button.dataset.isbn,
-              status: 0 
-            }
-          ]);
-
-        // Handle the response
-        if (error) {
-          console.error("Database save failed:", error);
-          button.textContent = 'Error';
-          button.style.backgroundColor = '#a34e4e'; // Faded red ink color
-          button.disabled = false; // Let the user try again
-        } else {
-          button.textContent = 'Saved!';
-          
-          // Refresh the library grid in the background so the new book is there when you switch tabs
-          loadBooks(); 
-        }
-      });
-    });
-
-  } catch (error) {
-    console.error("Search failed:", error);
-    searchResultsContainer.innerHTML = '<p style="text-align:center; color: #a34e4e;">Something went wrong. Please try again.</p>';
-  }
-}
-
-// Trigger search when clicking the button
-if (searchBtn) {
-  searchBtn.addEventListener('click', () => {
-    searchGoogleBooks(searchInput.value);
-  });
-}
-
-// Trigger search when pressing "Enter" on the keyboard
-if (searchInput) {
-  searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      searchGoogleBooks(searchInput.value);
-    }
-  });
-}
+loadBooks();
