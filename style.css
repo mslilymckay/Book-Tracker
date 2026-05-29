@@ -226,7 +226,7 @@ body {
   border-top-right-radius: 20px;
   box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
   transition: bottom 0.3s ease-in-out;
-  z-index: 20;
+  z-index: 2000;
   padding: 20px;
   /* Simulating the physical card */
   border-top: 3px solid #e0dcd3;
